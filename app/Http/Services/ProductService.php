@@ -3,6 +3,7 @@
 namespace App\Http\Services;
 
 use App\Models\Product;
+use GuzzleHttp\Exception\ClientException;
 use GuzzleHttp\Exception\GuzzleException;
 
 class ProductService
@@ -12,7 +13,7 @@ class ProductService
     protected $storeUri;
     public function __construct()
     {
-        $this->storeUri = env('STORE_SERVICE_URL');
+        $this->storeUri = env('STORE_SERVICE_URI');
     }
 
     public function store($request)
@@ -28,11 +29,9 @@ class ProductService
             $product = Product::create($request);
             $product->store = $store;
             return $product;
-        } catch (GuzzleException $e) {
-            return response()->json([
-                'error_code' => $e->getCode(),
-                'message' => $e->getMessage()
-            ], $e->getCode());
+        } catch (ClientException $e) {
+            $err = json_decode($e->getResponse()->getBody()->getContents());
+            return response()->json($err, $e->getCode());
         }
     }
 

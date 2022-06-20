@@ -7,8 +7,8 @@ use App\Http\Requests\UpdateProductRequest;
 use App\Http\Services\ProductService;
 use App\Models\Product;
 use App\Traits\RequestService;
+use GuzzleHttp\Exception\ClientException;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
-use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 
 class ProductController extends Controller
@@ -20,7 +20,7 @@ class ProductController extends Controller
     public function __construct(ProductService $productService)
     {
         $this->productService = $productService;
-        $this->storeUri = env('STORE_SERVICE_URL');
+        $this->storeUri = env('STORE_SERVICE_URI');
     }
 
     /**
@@ -31,7 +31,12 @@ class ProductController extends Controller
     public function index(): LengthAwarePaginator
     {
         // Paginate products result, default 10 data/page
-        $products = Product::paginate(request()->get('per_page', 10));
+        if (env('API_GATEWAY_URI')) {
+            $products = Product::paginate(request()->get('per_page', 10))
+                ->setPath(env('API_GATEWAY_URI').'/api/products');
+        } else {
+            $products = Product::paginate(request()->get('per_page', 10));
+        }
 
         // Get store data based on store id, and assign it to product
         foreach ($products as $product) {
@@ -66,6 +71,11 @@ class ProductController extends Controller
             $msg ='Product not found';
             return $this->errorResponse($msg, 404);
         }
+
+        $store_id = $product->store_id;
+        $store = $this->request('GET', $this->storeUri, '/'.$store_id);
+        $store = json_decode($store);
+        $product['store'] = $store;
         return $product;
     }
 
@@ -73,16 +83,26 @@ class ProductController extends Controller
      * Get products by specific store.
      *
      * @param int $store_id
-     * @return LengthAwarePaginator
      */
     public function productsByStore(int $store_id)
     {
-        $store = $this->request('GET', $this->storeUri, '/'.$store_id);
-        $store = json_decode($store);
-        $products = Product::where('store_id', $store_id)
-            ->paginate(
-                request()->get('per_page', 10)
-            );
+        try {
+            $store = $this->request('GET', $this->storeUri, '/'.$store_id);
+            $store = json_decode($store);
+        } catch (ClientException $e) {
+            $err = json_decode($e->getResponse()->getBody()->getContents());
+            return response()->json($err, $e->getCode());
+        }
+
+        if (env('API_GATEWAY_URI')) {
+            $products = Product::where('store_id', $store_id)
+                ->paginate(request()->get('per_page', 10))
+                ->setPath(env('API_GATEWAY_URI').'/api/products');
+        } else {
+            $products = Product::where('store_id', $store_id)
+                ->paginate(request()->get('per_page', 10));
+        }
+
         $data = [
           'store' => $store,
           'paginate' => $products,
@@ -93,7 +113,7 @@ class ProductController extends Controller
     /**
      * Update the specified resource in storage.
      *
-     * @param  \Illuminate\Http\UpdateProductRequest  $request
+     * @param  UpdateProductRequest  $request
      * @param  int  $id
      * @return Response
      */
