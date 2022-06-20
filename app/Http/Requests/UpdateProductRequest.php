@@ -15,11 +15,11 @@ class UpdateProductRequest extends CreateProductRequest
         return [
             'code' => 'sometimes|string',
             'name' => 'sometimes|string',
-            'price' => 'sometimes|numeric',
-            'stock' => 'sometimes|integer',
-            'min_order' => 'sometimes|integer',
+            'price' => 'sometimes|numeric|min:1',
+            'stock' => 'sometimes|numeric|min:0',
+            'min_order' => 'sometimes|numeric|min:1',
             'is_new' => 'sometimes|boolean',
-            'weight' => 'sometimes|integer',
+            'weight' => 'sometimes|numeric|min:1',
             'description' => 'sometimes|string',
         ];
     }

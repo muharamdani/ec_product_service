@@ -137,10 +137,20 @@ class ProductController extends Controller
     public function destroy($id)
     {
         try {
-            Product::find($id)->delete();
-            return $this->successResponse(["message" => "Delete successful"], 200);
+            // Delete product
+            $product = Product::find($id);
+            $store_id = $product->store_id;
+            $stock = $product->stock;
+            $product->delete();
+
+            // Update total product data
+            $store = $this->productService->getStoreData($store_id);
+            $total_product = $store->total_product;
+            $this->productService->updateTotalProduct($stock*2, $total_product, $store_id, $stock);
+
+            return $this->successResponse(["message" => "Delete product successful"], 200);
         } catch (\Throwable $e) {
-            return $this->errorResponse("Product id not found", 404);
+            return $this->errorResponse("Product not found", 404);
         }
     }
 }

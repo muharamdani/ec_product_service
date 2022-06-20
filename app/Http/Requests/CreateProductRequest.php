@@ -27,11 +27,11 @@ class CreateProductRequest extends FormRequest
             'store_id' => 'required|integer',
             'code' => 'sometimes|string',
             'name' => 'required|string',
-            'price' => 'required|numeric',
-            'stock' => 'required|integer',
-            'min_order' => 'required|integer',
+            'price' => 'required|numeric|min:1',
+            'stock' => 'required|numeric|min:0',
+            'min_order' => 'required|numeric|min:1',
             'is_new' => 'required|boolean',
-            'weight' => 'required|integer',
+            'weight' => 'required|numeric|min:1',
             'description' => 'sometimes|string',
         ];
     }
