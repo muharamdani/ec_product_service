@@ -1,6 +1,7 @@
 ## Product Service
 ### Requirements
 - PHP >= 8.0
+- DB MySQL
 - BCMath PHP Extension
 - Ctype PHP Extension
 - cURL PHP Extension
